@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="iron.css">
+    <meta charset="UTF-8">
+    <title>Breakdown of IronCompound</title>
+</head>
+<body>
+<div id="iron-compound-navigation">
+    <nav>
+        <button><a href="../Welcome_Page.html">Back to Welcome Page</a></button>
+        <button><a href="../history/VPN_History.html">VPN history</a></button>
+    </nav>
+</div>
+
+<div class="container1">
+    <h1>Breakdown of Iron Compound</h1>
+
+    <h2>VPN server</h2>
+
+    <article>
+        The Iron Compound VPN server is a custom-built VPN server that is hosted on a router. This VPN configuration hosts its
+        operates like any normal VPN, however, the structure doesn't rely on any well known VPN configurations like OpenVPN.
+        As will be discussed later on in, Iron Compound can be broken down into...the server itself, an administrative socket,
+        an intrusion prevention system, an automated rule engine, an AI scoring engine, a gulag (for blacklisted clients), a testing
+        suite, a client violation and session manager, and two separate logging systems; one for generic server acitivity and
+        the other for security violations. The server also gives each client their own encrypted tunnel for communications. It's not
+        one big encryption tunnel; instead its separate tunnels for each client.
+    </article>
+
+    <h3>Encryption of Communication</h3>
+    <article>
+        When a client initiates a connection to the server, both the server and client have to verify each other's
+        identity. The client is who initiates the identity verification, by sending its public to the server. The server compares
+        the received client's public key with public key(s) that the server trusts. If the key passes, the client is
+        sent to the next level of authentication. If the comparison fails, the server logs the failure and immediately closes
+        the connection. Once the trusted public key is in the server's hands, the server generates a private and public key pair
+        using RSA (Rivest-Shamir-Adleman) key generation. The server sends its public key via its socket connection with the client.
+        After the key exchanges, the client proceeds to send an encrypted AES (Asymmetrical encryption standard) key, which
+        the server receives using its public key. The server proceeds to decrypt the client's AES key using its private key
+        and an SHA-256 algorithm, generating an aes key. The server then generates a token, along with a finger print which is based
+        on the hex value of the client's public key.
+    </article>
+
+    <h3>Session Lock</h3>
+    <article>
+        Iron Compound's session lock is a thread safe that ensures that the server handles each connected client equally
+        while preventing race conditions. What is a race condition? A race condition occurs when a compiler executes two
+        different methods at the same time, but the actions within those methods are called out of order. With this in mind,
+        as previously stated, the session lock acts as a safeguard for the server, so that it can interact properly with
+        clients that initiate connections.
+    </article>
+
+    <h2>Administration Socket: The Caesar</h2>
+
+    <article>
+        The administrative socket as a concept is meant to oversee the server as a whole. The administrative socket is still in
+        its nascent form, however it is currently capable of enabling the manager of the server to manually handle the server.
+        The actions the manager can take are limited as of right now; call upon the violation manager (will be discussed later)
+        to report on a potential client's mal-behavior. The administrative socket is also capable of manually disconnecting
+        client's from the server if the manager sees that the client is potentially harmful. The final action the
+        manager can take is view a list of all the active clients that are connected to the server.
+    </article>
+
+    <h2>Intrusion Prevention System: The Legionnaire</h2>
+    <article>
+        Unlike other VPNs, IronCompound utilizes an integrated Intrusion Prevention System; The Legionnaire,
+        to monitor threats against the VPN server. What is an Intrusion Prevention System, you may ask...Intrusion Detection
+        Systems are like advanced firewalls, but at the same time different. Intrusion Prevention Systems filter network traffic
+        to root out malicious packets and or activity. Unlike regular firewalls that root out just the malicious
+        packets,
+        An IPS (at least mine is) is capable of barring potentially malicious clients from connecting to a server,
+        router, or any other networking device. The Legionnaire is designed to interact constantly with Iron Compound. When
+        a client initiates a connection, The Legionnaire examines Iron Compound's IP blacklist (the gulag) to ensure that
+        the client is a good actor.
+    </article>
+
+    <h3>Session Tracking</h3>
+    <article>
+        Session tracking ensures that important client-server interaction is logged and stored. This is also where the client's external
+        IPs are mapped with their VPN IP address, for security purposes that is. The Session Tracker begins its tracking of each client
+        after clients fulfil the authentication with the server. The components that the Session Tracker keeps track of in a
+        dictionary is the client's id, tunnel ip, the name of the client's tunnel, the time that the client finished authentication,
+        disconnection time, the client's initial IP, bytes sent and received from server, the finger print of the client, the
+        socket the client used to connect with, and the list of violations that a client could make. The list of violations starts out at
+        zero.
+    </article>
+
+    <h3>Violation Manager</h3>
+    <article>
+        The violation manager enforces the will of The Legionnaire. If a client is found to have triggered a rule, The Legionnaire
+        would call upon the violation manager to mark the client down through the session tracker as having violated the specific
+        rule. If The Legionnaire calls upon the violation manager and the violation manager find that the specific client has
+        crossed the violation threshold of a specific rule, the violation manager will proceed with flagging the client through
+        the session tracker.
+    </article>
+
+    <h2>Rule Policy Engine: The Senate</h2>
+    <article>
+        The Senate policy engine, is a mechanism for automating the enforcement of existing security rules. These security
+        rules are created manually via the manager of the server. As of right now the current security rules that will be enforced
+        whilst the server is running are...Excessive Bandwidth Usage, Throttling Violations, ICMP flooding violations, Syn Flooding
+        violations. There is another rule for Automatic Blacklist Threshold. This rule is enforced if the user reaches a total
+        of six violations. I also have the code for striking against client inactivity, but I currently have it commented out, so that
+        I can figure out how to implement the rule without striking against the client in a way that would send them to the gulag.
+    </article>
+
+    <h2>Hybrid AI Scoring Engine: The Praetorian Guard</h2>
+    <article>
+        The Praetorian Guard is split up into multiple parts. The first two pieces are of the supervised and unsupervised models.
+        The supervised model currently models that of a random forest algorithm, while the unsupervised model models that of an
+        autoencoder. As of right now the variables that go into the decision-making of both models are how many bytes the client
+        both sent and received, how many replay violations, throttle violations, syn flooding violations, and icmp flooding violations
+        that have occurred. The duration of the client's session is also utilized. The other piece of the Praetorian Guard is its
+        evaluation method that determines whether a client is a potential adversary. The Praetorian Guard determines if a client
+        is a potential adversary through a scoring system. The score is calculated through the addition of the autoencoders mse and
+        the random forest's classification. If the score reaches a certain level, a flag is set to tell The Legionnaire to flag
+        a session for having triggered the hybrid machine learning engine. In the return statement of the evaluate function,
+        the Praetorian Guard includes the reasoning and explanation behind why it flagged the session.
+    </article>
+
+    <h2>Iron Compound's Testing Suite</h2>
+    <article>
+        Nascent in its development, Iron Compound's testing suite is for running unit tests on the actions of the previously
+        mentioned components to Iron Compound.
+    </article>
+
+    <div class="container2">
+
+        <h1>Future Development Ideas and Goals</h1>
+
+        <h2>Dynamic Administrative Socket</h2>
+        <article>
+            The administrative socket is highly capable as of right now. However, I want to give the administrative socket
+            more power and capabilities. Similar to its current capability of disconnecting a client from the server, I also intend
+            to give the administrative socket/the manager of the server, the capability of adding and removing clients to and from the
+            gulag (blacklist). This is to ensure that clients that are innocent and were placed in the gulag by the AI engine, can be
+            released by the manager. This is also to ensure that the manager can catch malicious actors who were masking their actions
+            from the automated and hybrid rule engines. Speaking of the hybrid machine learning engine, I intend to somehow
+            give the administrative socket the power to disconnect the hybrid engine from the server, incase the hybrid engine
+            doesn't work in favor of the server.
+        </article>
+
+        <h2>Development of a network crawling module and adaptable AI engine</h2>
+        <article>
+            The idea of a network crawling module would be similar to that of the AI scoring engine.
+            The only difference is that the module would be centered around AI powered network crawling bots. This idea
+            is a theoretical one, and I haven't put too much research into the idea (both the architecture and legality of the idea).
+            The idea would be; The Legionnaire sends out AI bots to external networks, utilizing the router that hosts Iron Compound
+            as a gateway to these external networks. These AI bots would contain some sort of ability to communicate back to the
+            existing AI scoring engine. These AI bots would be programmed to search for and watch ongoing breaches and attacks in external
+            networks. These AI bots would report their findings to the AI engine to give it information on how to adapt its
+            capabilities against future attacks.
+        </article>
+
+        <h2>Dynamic Hardening of Server</h2>
+            <article>
+                Dynamically hardening Iron Compound against zeroday attacks and other types of attacks will require the Senate
+                to be adaptable and prepared for these types of attacks. That's where the previously mentioned network crawling module
+                comes into play. As the network crawlers report back to the adaptable AI engine, the AI engine will engage with
+                both the rule policy engine and AI scoring engine by feeding both engines important data from what the network
+                crawlers. From this data feed, the scoring engine and rule policy engine will be able to adapt their functionality
+                in order to protect the server against these potential future attacks. The automated rule policy engine will eventually
+                need an AI helper in order to manipulate its functionality. With dynamic hardening of the server, I do have a potential
+                idea of server adaptability that won't require AI. This idea entails having the VPN server change to a different
+                listening port, if its current listening port is overwhelmed during an attack.
+            </article>
+
+        <h2>Dynamic Training Modules</h2>
+        <article>
+            As mentioned early, Iron Compound currently holds a nascent training suite. As one of my future goals for Iron Compound
+            I aim to create a fully fledged training suite where I can sandbox different ideas and compare them against current
+            architecture. With this sandbox testing, I am to improve the dynamic nature of Iron Compound along with making the
+            VPN server more efficient and effective at detecting threats and ensuring client privacy.
+        </article>
+
+    </div>
+
+
+</div>
+
+</body>
+</html>
